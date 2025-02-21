@@ -13,6 +13,11 @@ apt update && apt upgrade -y
 echo "===== Installation d'Apache2 ====="
 apt install -y apache2
 
+cp createvhost /usr/local/bin/
+chmod +X /usr/local/bin/createvhost
+
+cp phpw /usr/local/bin/
+chmod +X /usr/local/bin/phpw
 
 echo "===== Installation de Bind9 (serveur DNS) ====="
 apt install -y bind9 bind9utils bind9-doc

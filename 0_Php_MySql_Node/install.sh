@@ -13,6 +13,8 @@ apt update && apt upgrade -y
 echo "===== Installation de MySQL ====="
 apt install -y mysql-server
 
+cp createdbuser /usr/local/bin/
+chmod +X /usr/local/bin/createdbuser
 
 echo "===== Installation de PHP ====="
 apt install -y php

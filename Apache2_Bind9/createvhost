@@ -1,0 +1,33 @@
+#!/bin/bash
+
+CURRENT_PATH=$(pwd)/
+servername=$1
+
+CONFIG="
+<VirtualHost *:80>\r\n
+\tServerName ${servername}\n
+\tDocumentRoot ${CURRENT_PATH}\n
+\t<Directory ${CURRENT_PATH}>\n
+\t\tOptions Indexes FollowSymLinks MultiViews\n
+\t\tAllowOverride all\n
+\t\trequire all granted\n
+\t\tOrder allow,deny\n
+\t\tallow from all\n
+\t</Directory>\n
+\n
+\tErrorLog /var/log/apache2/${servername}_error.log\n
+\tLogLevel warn\n
+\tCustomLog /var/log/apache2/${servername}_access.log combined\n\n
+</VirtualHost>\n"
+
+echo -e $CONFIG > "/etc/apache2/sites-available/${servername}.conf"
+a2ensite "$servername.conf"
+if apache2ctl -t
+then
+    echo 'Apache ok'
+    service apache2 reload
+else
+    echo 'Apache pas ok'
+    a2dissite "$servername.conf"
+    cat "/etc/apache2/sites-available/${servername}.conf"
+fi
