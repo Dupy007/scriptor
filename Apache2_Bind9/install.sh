@@ -22,6 +22,9 @@ chmod +X /usr/local/bin/phpw
 echo "===== Installation de Bind9 (serveur DNS) ====="
 apt install -y bind9 bind9utils bind9-doc
 
+cp createbzone /usr/local/bin/
+chmod +X /usr/local/bin/createbzone
+
 # Installation des paquets nécessaires pour un dépôt sécurisé
 apt install -y apt-transport-https ca-certificates curl gnupg lsb-release
 

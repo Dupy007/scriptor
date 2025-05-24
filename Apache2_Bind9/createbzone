@@ -1,0 +1,75 @@
+#!/bin/bash
+
+# Usage : sudo ./createbzone mondomaine.local 192.168.1.10
+
+DOMAIN=$1
+IP=$2
+
+if [ -z "$DOMAIN" ] || [ -z "$IP" ]; then
+    echo "Usage: $0 <domaine.exemple> <IP>"
+    exit 1
+fi
+
+ZONE_DIR="/etc/bind/zones"
+NAMED_CONF_LOCAL="/etc/bind/named.conf.local"
+ZONE_FILE="${ZONE_DIR}/db.${DOMAIN}"
+REVERSE_FILE="${ZONE_DIR}/db.${IP%.*}"
+REVERSE_ZONE="$(echo $IP | awk -F. '{print $3"."$2"."$1".in-addr.arpa"}')"
+
+mkdir -p "$ZONE_DIR"
+
+### Ajouter la configuration dans named.conf.local
+echo "
+zone \"$DOMAIN\" {
+    type master;
+    file \"$ZONE_FILE\";
+};
+
+zone \"$REVERSE_ZONE\" {
+    type master;
+    file \"$REVERSE_FILE\";
+};
+" >> "$NAMED_CONF_LOCAL"
+
+### Créer la zone directe
+cat <<EOF > "$ZONE_FILE"
+\$TTL    604800
+@       IN      SOA     ns1.${DOMAIN}. admin.${DOMAIN}. (
+                             1         ; Serial
+                        604800         ; Refresh
+                         86400         ; Retry
+                       2419200         ; Expire
+                        604800 )       ; Negative Cache TTL
+;
+@       IN      NS      ns1.${DOMAIN}.
+@       IN      A       $IP
+ns1     IN      A       $IP
+www     IN      A       $IP
+EOF
+
+### Créer la zone inverse
+LAST_OCTET=$(echo $IP | awk -F. '{print $4}')
+cat <<EOF > "$REVERSE_FILE"
+\$TTL    604800
+@       IN      SOA     ns1.${DOMAIN}. admin.${DOMAIN}. (
+                             1         ; Serial
+                        604800         ; Refresh
+                         86400         ; Retry
+                       2419200         ; Expire
+                        604800 )       ; Negative Cache TTL
+;
+@       IN      NS      ns1.${DOMAIN}.
+$LAST_OCTET       IN      PTR     ${DOMAIN}.
+EOF
+
+### Vérification et rechargement
+if named-checkconf && named-checkzone "$DOMAIN" "$ZONE_FILE" && named-checkzone "$REVERSE_ZONE" "$REVERSE_FILE"; then
+    echo "Configuration BIND9 OK"
+    systemctl reload bind9
+else
+    echo "Erreur dans la configuration BIND9"
+    echo "Contenu $ZONE_FILE:"
+    cat "$ZONE_FILE"
+    echo "Contenu $REVERSE_FILE:"
+    cat "$REVERSE_FILE"
+fi
